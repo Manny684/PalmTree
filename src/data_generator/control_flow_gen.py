@@ -1,4 +1,5 @@
-from binaryninja import *
+from smda.Disassembler import Disassembler
+from smda.common.SmdaReport import SmdaReport
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,7 +24,7 @@ def parse_instruction(ins, symbol_map, string_map):
         for j in range(len(symbols)):
             if symbols[j][:2] == '0x' and len(symbols[j]) >= 6:
                 if int(symbols[j], 16) in symbol_map:
-                    symbols[j] = "symbol"
+                    symbols[j] = symbol_map[int(symbols[j], 16)]
                 elif int(symbols[j], 16) in string_map:
                     symbols[j] = "string"
                 else:
@@ -36,17 +37,17 @@ def parse_instruction(ins, symbol_map, string_map):
 def random_walk(g,length, symbol_map, string_map):
     sequence = []
     for n in g:
-        if n != -1 and 'text' in g.node[n]:
+        if n != -1 and 'text' in g.nodes[n]:
             s = []
             l = 0
-            s.append(parse_instruction(g.node[n]['text'], symbol_map, string_map))
+            s.append(parse_instruction(g.nodes[n]['text'], symbol_map, string_map))
             cur = n
             while l < length:
                 nbs = list(g.successors(cur))
                 if len(nbs):
                     cur = random.choice(nbs)
-                    if 'text' in g.node[cur]:
-                        s.append(parse_instruction(g.node[cur]['text'], symbol_map, string_map))
+                    if 'text' in g.nodes[cur]:
+                        s.append(parse_instruction(g.nodes[cur]['text'], symbol_map, string_map))
                         l += 1
                     else:
                         break
@@ -62,33 +63,34 @@ def process_file(f, window_size):
     symbol_map = {}
     string_map = {}
     print(f)
-    bv = BinaryViewType.get_view_of_file(f)
-    for sym in bv.get_symbols():
-        symbol_map[sym.address] = sym.full_name
-    for string in bv.get_strings():
-        string_map[string.start] = string.value
+    report = Disassembler().disassembleFile(f)
+    symbol_map = get_symbols(report)
+    #for string in bv.get_strings():
+    #    string_map[string.start] = string.value
 
     function_graphs = {}
 
-    for func in bv.functions:
+    for func in report.getFunctions():
         G = nx.DiGraph()
         label_dict = {}   
         add_map = {}
-        for block in func:
+        for addr, insns in func.blocks.items():
             # print(block.disassembly_text)
-            curr = block.start
+            curr = addr
             predecessor = curr
-            for inst in block:
-                label_dict[curr] = bv.get_disassembly(curr)
-                G.add_node(curr, text=bv.get_disassembly(curr))
-                if curr != block.start:
+            for inst in insns:
+                disassembly = " ".join([inst.mnemonic, inst.operands])
+                label_dict[addr] = disassembly
+                G.add_node(curr, text=disassembly)
+                if curr != addr:
                     G.add_edge(predecessor, curr)
                 predecessor = curr
-                curr += inst[1]
-            for edge in block.outgoing_edges:
-                G.add_edge(predecessor, edge.target.start)
+                curr += inst.getDetailed().size
+            if addr in func.blockrefs:
+                for edge in func.blockrefs[addr]:
+                    G.add_edge(predecessor, edge)
         if len(G.nodes) > 2:
-            function_graphs[func.name] = G    
+            function_graphs[func.offset] = G
 
     with open('cfg_train.txt', 'a') as w:
         for name, graph in function_graphs.items():
@@ -102,6 +104,15 @@ def process_file(f, window_size):
                             if idx + i < len(s):
                                 w.write(s[idx] +'\t' + s[idx+i]  + '\n')
     # gc.collect()
+
+
+def get_symbols(report: SmdaReport):
+    symbol_map = {}
+    for f in report.getFunctions():
+        for k, v in f.apirefs.items():
+            symbol_map[k] = v.split("!")[1]
+    return symbol_map
+
 
 def main():
     bin_folder = '/path/to/binaries' 
