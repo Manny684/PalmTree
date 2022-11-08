@@ -60,7 +60,6 @@ def random_walk(g,length, symbol_map, string_map):
     return sequence
 
 def process_file(f, window_size):
-    symbol_map = {}
     string_map = {}
     print(f)
     report = Disassembler().disassembleFile(f)
@@ -91,7 +90,6 @@ def process_file(f, window_size):
                     G.add_edge(predecessor, edge)
         if len(G.nodes) > 2:
             function_graphs[func.offset] = G
-
     with open('cfg_train.txt', 'a') as w:
         for name, graph in function_graphs.items():
             sequence = random_walk(graph, 40, symbol_map, string_map)
@@ -109,8 +107,15 @@ def process_file(f, window_size):
 def get_symbols(report: SmdaReport):
     symbol_map = {}
     for f in report.getFunctions():
-        for k, v in f.apirefs.items():
-            symbol_map[k] = v.split("!")[1]
+        blocks = f.blocks.values()
+        insns_lookup = {}
+        for block in blocks:
+            for insn in block:
+                insns_lookup[insn.offset] = insn
+        for addr, symbol in f.apirefs.items():
+            assert len(f.outrefs[addr]) == 1
+            symbol_addr = f.outrefs[addr][0] - f.offset - insns_lookup[addr].getDetailed().size
+            symbol_map[symbol_addr] = symbol.split("!")[1]
     return symbol_map
 
 
