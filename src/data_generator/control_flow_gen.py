@@ -23,7 +23,7 @@ def parse_instruction(ins, symbol_map, string_map):
         for j in range(len(symbols)):
             if symbols[j][:2] == '0x' and len(symbols[j]) >= 6:
                 if int(symbols[j], 16) in symbol_map:
-                    symbols[j] = "symbol"
+                    symbols[j] = symbol_map[int(symbols[j], 16)]
                 elif int(symbols[j], 16) in string_map:
                     symbols[j] = "string"
                 else:
@@ -36,17 +36,17 @@ def parse_instruction(ins, symbol_map, string_map):
 def random_walk(g,length, symbol_map, string_map):
     sequence = []
     for n in g:
-        if n != -1 and 'text' in g.node[n]:
+        if n != -1 and 'text' in g.nodes[n]:
             s = []
             l = 0
-            s.append(parse_instruction(g.node[n]['text'], symbol_map, string_map))
+            s.append(parse_instruction(g.nodes[n]['text'], symbol_map, string_map))
             cur = n
             while l < length:
                 nbs = list(g.successors(cur))
                 if len(nbs):
                     cur = random.choice(nbs)
-                    if 'text' in g.node[cur]:
-                        s.append(parse_instruction(g.node[cur]['text'], symbol_map, string_map))
+                    if 'text' in g.nodes[cur]:
+                        s.append(parse_instruction(g.nodes[cur]['text'], symbol_map, string_map))
                         l += 1
                     else:
                         break
@@ -104,7 +104,7 @@ def process_file(f, window_size):
     # gc.collect()
 
 def main():
-    bin_folder = '/path/to/binaries' 
+    bin_folder = './tmp/' 
     file_lst = []
     str_counter = Counter()
     window_size = 1;

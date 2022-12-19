@@ -8,10 +8,9 @@ from sklearn.decomposition import PCA
 import random
 import os
 import re
-import tqdm
+from tqdm import tqdm
 import pickle
 from  collections import Counter
-from memory_profiler import profile
 import gc
 
 
@@ -26,7 +25,7 @@ def parse_instruction(ins, symbol_map, string_map):
         for j in range(len(symbols)):
             if symbols[j][:2] == '0x' and len(symbols[j]) >= 6:
                 if int(symbols[j], 16) in symbol_map:
-                    symbols[j] = "symbol" # function names
+                    symbols[j] = symbol_map[int(symbols[j], 16)] # function names
                 elif int(symbols[j], 16) in string_map:
                     symbols[j] = "string" # constant strings
                 else:
@@ -39,16 +38,16 @@ def parse_instruction(ins, symbol_map, string_map):
 def random_walk(g,length, symbol_map, string_map):
     sequence = []
     for n in g:
-        if n != -1 and g.node[n]['text'] != None:
+        if n != -1 and g.nodes[n]['text'] != None:
             s = []
             l = 0
-            s.append(parse_instruction(g.node[n]['text'], symbol_map, string_map))
+            s.append(parse_instruction(g.nodes[n]['text'], symbol_map, string_map))
             cur = n
             while l < length:
                 nbs = list(g.successors(cur))
                 if len(nbs):
                     cur = random.choice(nbs)
-                    s.append(parse_instruction(g.node[cur]['text'], symbol_map, string_map))
+                    s.append(parse_instruction(g.nodes[cur]['text'], symbol_map, string_map))
                     l += 1
                 else:
                     break
@@ -122,7 +121,7 @@ def process_string(f):
 
 
 def main():
-    bin_folder = '/path/to/binaries'
+    bin_folder = 'tmp'
     file_lst = []
     str_counter = Counter()
     for parent, subdirs, files in os.walk(bin_folder):

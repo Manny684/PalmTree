@@ -8,14 +8,14 @@ import numpy as np
 import palmtree
 from palmtree import dataset
 from palmtree import trainer
+from palmtree import BERT
 import pickle as pkl
 
 print(palmtree.__file__)
 vocab_path = "cdfg_bert_1/vocab"
-train_cfg_dataset = "data/training/cdfg_bert_1/cfg_train.txt"
-train_dfg_dataset = "data/training/cdfg_bert_1/dfg_train.txt"
-test_dataset = "data/training/cdfg_bert_1/test.txt"
-sent_dataset = "data/sentence.pkl"
+train_cfg_dataset = "data_generator/cfg_train.txt"
+train_dfg_dataset = "data_generator/dfg_train.txt"
+test_dataset = None
 output_path = "cdfg_bert_1/transformer"
 
 with open(train_cfg_dataset, "r", encoding="utf-8") as f1:
@@ -37,7 +37,7 @@ train_dataset = dataset.BERTDataset(train_cfg_dataset, train_dfg_dataset, vocab,
                             corpus_lines=None, on_memory=True)
 
 print("Loading Test Dataset", test_dataset)
-test_dataset = bert_pytorch.dataset.BERTDataset(test_dataset, test_dataset, vocab, seq_len=20, on_memory=True) \
+test_dataset = dataset.BERTDataset(test_dataset, test_dataset, vocab, seq_len=20, on_memory=True) \
     if test_dataset is not None else None
 
 print("Creating Dataloader")
@@ -49,7 +49,7 @@ test_data_loader = DataLoader(test_dataset, batch_size=256, num_workers=10) \
     if test_dataset is not None else None
 
 print("Building BERT model")
-bert = bert_pytorch.BERT(len(vocab), hidden=128, n_layers=12, attn_heads=8, dropout=0.0)
+bert = BERT(len(vocab), hidden=128, n_layers=12, attn_heads=8, dropout=0.0)
 
 print("Creating BERT Trainer")
 trainer = trainer.BERTTrainer(bert, len(vocab), train_dataloader=train_data_loader, test_dataloader=test_data_loader,
