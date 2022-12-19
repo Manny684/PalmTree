@@ -1,17 +1,10 @@
 from binaryninja import *
 import networkx as nx
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.feature_extraction.text import CountVectorizer
-from itertools import product
-from sklearn.decomposition import PCA
 import random
 import os
 import re
 import tqdm
-import pickle
 from  collections import Counter
-from memory_profiler import profile
 import gc
 
 
