@@ -6,7 +6,16 @@ import pickle as pkl
 
 
 class BERTDataset(Dataset):
-    def __init__(self, dfg_corpus_path, cfg_corpus_path, vocab, seq_len, encoding="utf-8", corpus_lines=None, on_memory=True):
+    def __init__(
+        self,
+        cfg_corpus_path,
+        dfg_corpus_path,
+        vocab,
+        seq_len,
+        encoding="utf-8",
+        corpus_lines=None,
+        on_memory=True,
+    ):
         self.vocab = vocab
         self.seq_len = seq_len
 
@@ -20,44 +29,54 @@ class BERTDataset(Dataset):
         if self.corpus_lines is None:
             self.corpus_lines = 0
 
-        # load DFG sequences 
+        # load DFG sequences
         with open(dfg_corpus_path, "r", encoding=encoding) as f:
             if not on_memory:
                 for _ in tqdm.tqdm(f, desc="Loading Dataset", total=corpus_lines):
                     self.corpus_lines += 1
 
             if on_memory:
-                self.dfg_lines = [line[:-1].split("\t")
-                              for line in tqdm.tqdm(f, desc="Loading Dataset", total=corpus_lines)]
-                
+                self.dfg_lines = [
+                    line[:-1].split("\t")
+                    for line in tqdm.tqdm(f, desc="Loading Dataset", total=corpus_lines)
+                ]
+
                 self.corpus_lines = len(self.dfg_lines)
-       
-       # load CFG sequences 
+
+        # load CFG sequences
         with open(cfg_corpus_path, "r", encoding=encoding) as f:
             if not on_memory:
                 for _ in tqdm.tqdm(f, desc="Loading Dataset", total=corpus_lines):
                     self.corpus_lines += 1
 
             if on_memory:
-                self.cfg_lines = [line[:-1].split("\t")
-                              for line in tqdm.tqdm(f, desc="Loading Dataset", total=corpus_lines)]
-                
-                if self.corpus_lines > len(self.cfg_lines):    
-                    self.corpus_lines = len(self.cfg_lines)
-        
+                self.cfg_lines = [
+                    line[:-1].split("\t")
+                    for line in tqdm.tqdm(f, desc="Loading Dataset", total=corpus_lines)
+                ]
 
+                if self.corpus_lines > len(self.cfg_lines):
+                    self.corpus_lines = len(self.cfg_lines)
 
         if not on_memory:
             self.cfg_corpus_file = open(cfg_corpus_path, "r", encoding=encoding)
             self.cfg_corpus_file_random = open(cfg_corpus_path, "r", encoding=encoding)
 
-            for _ in range(random.randrange(self.corpus_lines if self.corpus_lines < 1000 else 1000)):
+            for _ in range(
+                random.randrange(
+                    self.corpus_lines if self.corpus_lines < 1000 else 1000
+                )
+            ):
                 self.cfg_corpus_file_random.__next__()
 
             self.dfg_corpus_file = open(dfg_corpus_path, "r", encoding=encoding)
             self.dfg_corpus_file_random = open(dfg_corpus_path, "r", encoding=encoding)
 
-            for _ in range(random.randrange(self.corpus_lines if self.corpus_lines < 1000 else 1000)):
+            for _ in range(
+                random.randrange(
+                    self.corpus_lines if self.corpus_lines < 1000 else 1000
+                )
+            ):
                 self.dfg_corpus_file_random.__next__()
 
     def __len__(self):
@@ -226,7 +245,9 @@ class BERTDataset(Dataset):
             line = self.cfg_corpus_file.__next__()
             if line is None:
                 self.cfg_corpus_file.close()
-                self.cfg_corpus_file = open(self.cfg_corpus_path, "r", encoding=self.encoding)
+                self.cfg_corpus_file = open(
+                    self.cfg_corpus_path, "r", encoding=self.encoding
+                )
                 line = self.cfg_corpus_file.__next__()
 
             t1, t2 = line[:-1].split("\t")
@@ -234,7 +255,9 @@ class BERTDataset(Dataset):
 
             if line is None:
                 self.dfg_corpus_file.close()
-                self.dfg_corpus_file = open(self.dfg_corpus_path, "r", encoding=self.encoding)
+                self.dfg_corpus_file = open(
+                    self.dfg_corpus_path, "r", encoding=self.encoding
+                )
                 line = self.dfg_corpus_file.__next__()
 
             t3, t4 = line[:-1].split("\t")
@@ -249,7 +272,11 @@ class BERTDataset(Dataset):
         if line is None:
             self.file.close()
             self.file = open(self.cfg_corpus_path, "r", encoding=self.encoding)
-            for _ in range(random.randrange(self.corpus_lines if self.corpus_lines < 1000 else 1000)):
+            for _ in range(
+                random.randrange(
+                    self.corpus_lines if self.corpus_lines < 1000 else 1000
+                )
+            ):
                 self.cfg_corpus_file_random.__next__()
             line = self.cfg_corpus_file_random.__next__()
         return line[:-1].split("\t")[1]
