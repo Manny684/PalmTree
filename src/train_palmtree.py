@@ -33,28 +33,48 @@ print("Vocab Size: ", len(vocab))
 
 
 print("Loading Train Dataset")
-train_dataset = dataset.BERTDataset(train_cfg_dataset, train_dfg_dataset, vocab, seq_len=20,
-                            corpus_lines=None, on_memory=True)
+train_dataset = dataset.BERTDataset(
+    train_cfg_dataset,
+    train_dfg_dataset,
+    vocab,
+    seq_len=20,
+    corpus_lines=None,
+    on_memory=False,
+)
 
 print("Loading Test Dataset", test_dataset)
-test_dataset = dataset.BERTDataset(test_dataset, test_dataset, vocab, seq_len=20, on_memory=True) \
-    if test_dataset is not None else None
+test_dataset = (
+    dataset.BERTDataset(test_dataset, test_dataset, vocab, seq_len=20, on_memory=False)
+    if test_dataset is not None
+    else None
+)
 
 print("Creating Dataloader")
 train_data_loader = DataLoader(train_dataset, batch_size=256, num_workers=10)
 
 
-
-test_data_loader = DataLoader(test_dataset, batch_size=256, num_workers=10) \
-    if test_dataset is not None else None
+test_data_loader = (
+    DataLoader(test_dataset, batch_size=256, num_workers=10)
+    if test_dataset is not None
+    else None
+)
 
 print("Building BERT model")
 bert = BERT(len(vocab), hidden=128, n_layers=12, attn_heads=8, dropout=0.0)
 
 print("Creating BERT Trainer")
-trainer = trainer.BERTTrainer(bert, len(vocab), train_dataloader=train_data_loader, test_dataloader=test_data_loader,
-                        lr=1e-5, betas=(0.9, 0.999), weight_decay=0.0,
-                        with_cuda=True, cuda_devices=[0], log_freq=100)
+trainer = trainer.BERTTrainer(
+    bert,
+    len(vocab),
+    train_dataloader=train_data_loader,
+    test_dataloader=test_data_loader,
+    lr=1e-5,
+    betas=(0.9, 0.999),
+    weight_decay=0.0,
+    with_cuda=True,
+    cuda_devices=[0],
+    log_freq=100,
+)
 
 
 print("Training Start")
@@ -62,4 +82,4 @@ for epoch in range(20):
     trainer.train(epoch)
     trainer.save(epoch, output_path)
 #    if test_data_loader is not None:
-#        trainer.test(epoch)     
+#        trainer.test(epoch)
