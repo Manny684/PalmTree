@@ -3,6 +3,7 @@ import tqdm
 import torch
 import random
 import pickle as pkl
+import linecache
 
 
 class BERTDataset(Dataset):
@@ -25,6 +26,8 @@ class BERTDataset(Dataset):
         self.corpus_lines = corpus_lines
         self.dfg_corpus_path = dfg_corpus_path
         self.cfg_corpus_path = cfg_corpus_path
+        self.cfg_corpus_len = 0
+        self.dfg_corpus_len = 0
         self.encoding = encoding
         if self.corpus_lines is None:
             self.corpus_lines = 0
@@ -34,6 +37,7 @@ class BERTDataset(Dataset):
             if not on_memory:
                 for _ in tqdm.tqdm(f, desc="Loading Dataset", total=corpus_lines):
                     self.corpus_lines += 1
+                    self.dfg_corpus_len += 1
 
             if on_memory:
                 self.dfg_lines = [
@@ -48,6 +52,7 @@ class BERTDataset(Dataset):
             if not on_memory:
                 for _ in tqdm.tqdm(f, desc="Loading Dataset", total=corpus_lines):
                     self.corpus_lines += 1
+                    self.cfg_corpus_len += 1
 
             if on_memory:
                 self.cfg_lines = [
@@ -57,27 +62,9 @@ class BERTDataset(Dataset):
 
                 if self.corpus_lines > len(self.cfg_lines):
                     self.corpus_lines = len(self.cfg_lines)
-
-        if not on_memory:
-            self.cfg_corpus_file = open(cfg_corpus_path, "r", encoding=encoding)
-            self.cfg_corpus_file_random = open(cfg_corpus_path, "r", encoding=encoding)
-
-            for _ in range(
-                random.randrange(
-                    self.corpus_lines if self.corpus_lines < 1000 else 1000
-                )
-            ):
-                self.cfg_corpus_file_random.__next__()
-
-            self.dfg_corpus_file = open(dfg_corpus_path, "r", encoding=encoding)
-            self.dfg_corpus_file_random = open(dfg_corpus_path, "r", encoding=encoding)
-
-            for _ in range(
-                random.randrange(
-                    self.corpus_lines if self.corpus_lines < 1000 else 1000
-                )
-            ):
-                self.dfg_corpus_file_random.__next__()
+            else:
+                if self.corpus_lines > self.cfg_corpus_len:
+                    self.corpus_lines = self.cfg_corpus_len
 
     def __len__(self):
         return self.corpus_lines
@@ -242,24 +229,9 @@ class BERTDataset(Dataset):
             )
 
         else:
-            line = self.cfg_corpus_file.__next__()
-            if line is None:
-                self.cfg_corpus_file.close()
-                self.cfg_corpus_file = open(
-                    self.cfg_corpus_path, "r", encoding=self.encoding
-                )
-                line = self.cfg_corpus_file.__next__()
-
+            line = linecache.getline(self.cfg_corpus_path, item)
             t1, t2 = line[:-1].split("\t")
-            line = self.dfg_corpus_file.__next__()
-
-            if line is None:
-                self.dfg_corpus_file.close()
-                self.dfg_corpus_file = open(
-                    self.dfg_corpus_path, "r", encoding=self.encoding
-                )
-                line = self.dfg_corpus_file.__next__()
-
+            line = linecache.getline(self.dfg_corpus_path, item)
             t3, t4 = line[:-1].split("\t")
             return t1, t2, t3, t4
 
@@ -268,17 +240,7 @@ class BERTDataset(Dataset):
             l = self.cfg_lines[random.randrange(len(self.cfg_lines))]
             return l[1]
 
-        line = self.cfg_corpus_file_random.__next__()
-        if line is None:
-            self.cfg_corpus_file_random.close()
-            self.cfg_corpus_file_random = open(
-                self.cfg_corpus_path, "r", encoding=self.encoding
-            )
-            for _ in range(
-                random.randrange(
-                    self.corpus_lines if self.corpus_lines < 1000 else 1000
-                )
-            ):
-                self.cfg_corpus_file_random.__next__()
-            line = self.cfg_corpus_file_random.__next__()
+        line = linecache.getline(
+            self.cfg_corpus_path, random.randint(0, self.cfg_corpus_len)
+        )
         return line[:-1].split("\t")[1]
